@@ -286,6 +286,8 @@ TabToggles:AddToggle({
 runService.Heartbeat:Connect(function()
     if tick() - lastUpdate >= updateInterval then
         updateESP()
+        findMurderer()
+        findSheriff()
         lastUpdate = tick()
     end
 end)
