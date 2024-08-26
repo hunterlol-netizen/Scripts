@@ -1,244 +1,296 @@
---[[
-Pelo amor de Deus não se baseie nesse codigo se alguem mudar um wait tudo vai aos ares
-riq peidou em você
-]]
-local NEVERLOSE = loadstring(game:HttpGet("https://raw.githubusercontent.com/3345-c-a-t-s-u-s/NEVERLOSE-UI-Nightly/main/source.lua"))()
+local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
 
-NEVERLOSE:Theme("dark")
+local Window = OrionLib:MakeWindow({ 
+    Name = "Riq Hub - " .. identifyexecutor(), 
+    HidePremium = false, 
+    SaveConfig = true, 
+    ConfigFolder = "RiqHubConfig" 
+})
 
-local Window = NEVERLOSE:AddWindow("Riq Hub","Murder Mystery 2")
-local Notification = NEVERLOSE:Notification()
+local TabToggles = Window:MakeTab({
+    Name = "Toggles",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
 
-Notification.MaxNotifications = 1
+local Tab = Window:MakeTab({
+    Name = "ESP",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
 
-local Tab = Window:AddTab('Auto Farm','earth')
+local murderESPEnabled = false
+local sheriffESPEnabled = false
+local playerESPEnabled = false
+local autoShootingEnabled = false
 
-local GUI = Tab:AddSection('Main',"left")
-
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local runService = game:GetService("RunService")
+local lastUpdate = tick()
+local updateInterval = 1
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 local LP = Players.LocalPlayer
-local roles
-local toggleActive = false
-local autoShooting = false
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local shootOffset = 2.8
-local teleportToGunDrop = false
 
-local foundMurderer = nil
-local foundSheriff = nil
+local murderHighlights = {}
+local sheriffHighlights = {}
+local playerHighlights = {}
 
-function CreateHighlight()
-	for i, v in pairs(Players:GetChildren()) do
-		if v ~= LP and v.Character and not v.Character:FindFirstChild("Highlight") then
-			Instance.new("Highlight", v.Character)           
-		end
-	end
+local function applyHighlight(character, color, highlightTable)
+    if highlightTable[character] then
+        return
+    end
+
+    local highlight = Instance.new("Highlight")
+    highlight.FillTransparency = 1
+    highlight.OutlineColor = color
+    highlight.Parent = character
+    highlightTable[character] = highlight
 end
 
-function UpdateHighlights()
-	for _, v in pairs(Players:GetChildren()) do
-		if v ~= LP and v.Character and v.Character:FindFirstChild("Highlight") then
-			local Highlight = v.Character:FindFirstChild("Highlight")
-			if v.Name == Sheriff and IsAlive(v) then
-				Highlight.FillColor = Color3.fromRGB(0, 0, 225)
-			elseif v.Name == Murder and IsAlive(v) then
-				Highlight.FillColor = Color3.fromRGB(225, 0, 0)
-			elseif v.Name == Hero and IsAlive(v) and not IsAlive(game.Players[Sheriff]) then
-				Highlight.FillColor = Color3.fromRGB(255, 250, 0)
-			else
-				Highlight.FillColor = Color3.fromRGB(0, 225, 0)
-			end
-		end
-	end
-end	
-
-function RemoveHighlights()
-	for _, v in pairs(Players:GetChildren()) do
-		if v ~= LP and v.Character then
-			local Highlight = v.Character:FindFirstChild("Highlight")
-			if Highlight then
-				Highlight:Destroy()
-			end
-		end
-	end
+local function removeHighlights(highlightTable)
+    for character, highlight in pairs(highlightTable) do
+        highlight:Destroy()
+        highlightTable[character] = nil
+    end
 end
 
-function IsAlive(Player)
-	for i, v in pairs(roles) do
-		if Player.Name == i then
-			if not v.Killed and not v.Dead then
-				return true
-			else
-				return false
-			end
-		end
-	end
+local function updateMurderESP()
+    local existingMurderHighlights = {}
+    for _, model in pairs(Workspace:GetChildren()) do
+        if model:IsA("Model") then
+            local player = Players:GetPlayerFromCharacter(model)
+            if player then
+                local backpack = player.Backpack
+                if backpack then
+                    local knife = backpack:FindFirstChild("Knife")
+                    if knife or player.Character:FindFirstChild("Knife") then
+                        existingMurderHighlights[player.Character] = true
+                        applyHighlight(player.Character, Color3.new(1, 0, 0), murderHighlights)
+                    end
+                end
+            end
+        end
+    end
+    
+    for character, _ in pairs(murderHighlights) do
+        if not existingMurderHighlights[character] then
+            murderHighlights[character]:Destroy()
+            murderHighlights[character] = nil
+        end
+    end
 end
 
-local function getPredictedPosition(player, shootOffset)
-	pcall(function()
-		player = player.Character
-		if not player then
-			Notification:Notify("info", "Error", "No player to predict position.")
-			return Vector3.new(0, 0, 0)
-		end
-	end)
-	
-	local playerHRP = player:FindFirstChild("UpperTorso")
-	local playerHum = player:FindFirstChild("Humanoid")
-	if not playerHRP or not playerHum then
-		Notification:Notify("info", "Error", "Could not find the player's HumanoidRootPart.")
-		return Vector3.new(0, 0, 0)
-	end
+local function updateSheriffESP()
+    local existingSheriffHighlights = {}
+    for _, model in pairs(Workspace:GetChildren()) do
+        if model:IsA("Model") then
+            local player = Players:GetPlayerFromCharacter(model)
+            if player then
+                local backpack = player.Backpack
+                if backpack then
+                    local gun = backpack:FindFirstChild("Gun")
+                    if gun or player.Character:FindFirstChild("Gun") then
+                        existingSheriffHighlights[player.Character] = true
+                        applyHighlight(player.Character, Color3.new(0, 0, 1), sheriffHighlights)
+                    end
+                end
+            end
+        end
+    end
+    
+    for character, _ in pairs(sheriffHighlights) do
+        if not existingSheriffHighlights[character] then
+            sheriffHighlights[character]:Destroy()
+            sheriffHighlights[character] = nil
+        end
+    end
+end
 
-	local playerPosition = playerHRP.Position
-	local velocity = playerHRP.AssemblyLinearVelocity
-	local playerMoveDirection = playerHum.MoveDirection
-	local predictedPosition = playerHRP.Position + (velocity * Vector3.new(0, 0.5, 0)) * (shootOffset / 15) + playerMoveDirection * shootOffset
-	
-	return predictedPosition
+local function updatePlayerESP()
+    local existingPlayerHighlights = {}
+    for _, model in pairs(Workspace:GetChildren()) do
+        if model:IsA("Model") then
+            local player = Players:GetPlayerFromCharacter(model)
+            if player and not murderHighlights[player.Character] and not sheriffHighlights[player.Character] then
+                existingPlayerHighlights[player.Character] = true
+                applyHighlight(player.Character, Color3.new(0, 1, 0), playerHighlights)
+            end
+        end
+    end
+    
+    for character, _ in pairs(playerHighlights) do
+        if not existingPlayerHighlights[character] then
+            playerHighlights[character]:Destroy()
+            playerHighlights[character] = nil
+        end
+    end
+end
+
+local function notify(title, text, time)
+    OrionLib:MakeNotification({
+        Name = title,
+        Content = text,
+        Image = "rbxassetid://4483345998",
+        Time = time
+    })
 end
 
 local function findMurderer()
-	for _, i in ipairs(Players:GetPlayers()) do
-		if i.Backpack:FindFirstChild("Knife") then
-			return i
-		end
-	end
-	
-	for _, i in ipairs(Players:GetPlayers()) do
-		if not i.Character then continue end
-		if i.Character:FindFirstChild("Knife") then
-			return i
-		end
-	end
-	
-	if playerData then
-		for player, data in playerData do
-			if data.Role == "Murderer" then
-				if Players:FindFirstChild(player) then
-					return Players:FindFirstChild(player)
-				end
-			end
-		end
-	end
-	return nil
+    for _, player in pairs(Players:GetPlayers()) do
+        local character = player.Character
+        if character and character:FindFirstChild("Humanoid") then
+            local backpack = player.Backpack
+            if backpack and backpack:FindFirstChild("Knife") then
+                return player
+            end
+        end
+    end
+    return nil
 end
 
 local function findSheriff()
-	for _, i in ipairs(Players:GetPlayers()) do
-		if i.Backpack:FindFirstChild("Gun") then
-			return i
-		end
-	end
-	
-	for _, i in ipairs(Players:GetPlayers()) do
-		if not i.Character then continue end
-		if i.Character:FindFirstChild("Gun") then
-			return i
-		end
-	end
-	
-	if playerData then
-		for player, data in playerData do
-			if data.Role == "Sheriff" then
-				if Players:FindFirstChild(player) then
-					return Players:FindFirstChild(player)
-				end
-			end
-		end
-	end
-	return nil
+    for _, player in pairs(Players:GetPlayers()) do
+        local character = player.Character
+        if character and character:FindFirstChild("Humanoid") then
+            local backpack = player.Backpack
+            if backpack and backpack:FindFirstChild("Gun") then
+                return player
+            end
+        end
+    end
+    return nil
 end
 
-GUI:AddToggle('Player Chams', false, function(val)
-	toggleActive = val
-	while not toggleActive do
-		RemoveHighlights()
-		task.wait(0.1)
-	end
+local function updateESP()
+    if murderESPEnabled then
+        updateMurderESP()
+    end
+    
+    if sheriffESPEnabled then
+        updateSheriffESP()
+    end
+
+    if playerESPEnabled then
+        updatePlayerESP()
+    end
+end
+
+local function getPredictedPosition(player, shootOffset)
+    pcall(function()
+        player = player.Character
+        if not player then notify("No murderer to predict position.") return end
+    end)
+    local playerHRP = player:FindFirstChild("UpperTorso")
+    local playerHum = player:FindFirstChild("Humanoid")
+    if not playerHRP or not playerHum then
+        return Vector3.new(0,0,0), "Could not find the player's HumanoidRootPart."
+    end
+
+    local playerPosition = playerHRP.Position
+    local velocity = playerHRP.AssemblyLinearVelocity
+    local playerMoveDirection = playerHum.MoveDirection
+    local predictedPosition = playerHRP.Position + (velocity * Vector3.new(0, 0.5, 0)) * (shootOffset / 15) + playerMoveDirection * shootOffset
+
+    return predictedPosition
+end
+
+local function updateAutoShoot()
+    if autoShootingEnabled then
+        startAutoShoot()
+    end
+end
+
+local function startAutoShoot()
+    task.spawn(function()
+        while task.wait(1) do
+            if findSheriff() == LP and autoShootingEnabled then
+                notify("Auto-shooting started.")
+                repeat
+                    task.wait(0.1)
+                    local murderer = findMurderer()
+                    if not murderer then notify("No murderer.") continue end
+                    local murdererPosition = murderer.Character.HumanoidRootPart.Position
+                    local characterRootPart = LP.Character.HumanoidRootPart
+                    local rayDirection = murdererPosition - characterRootPart.Position
+
+                    local raycastParams = RaycastParams.new()
+                    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+                    raycastParams.FilterDescendantsInstances = {LP.Character}
+
+                    local hit = Workspace:Raycast(characterRootPart.Position, rayDirection, raycastParams)
+                    if not hit or hit.Instance.Parent == murderer.Character then
+                        notify("Auto-shooting!")
+                        if not LP.Character:FindFirstChild("Gun") then
+                            if LP.Backpack:FindFirstChild("Gun") then
+                                LP.Character:FindFirstChild("Humanoid"):EquipTool(LP.Backpack:FindFirstChild("Gun"))
+                            else
+                                notify("You don't have the gun..?")
+                                return
+                            end
+                        end
+
+                        local predictedPosition = getPredictedPosition(murderer, shootOffset)
+
+                        local args = {
+                            [1] = 1,
+                            [2] = predictedPosition,
+                            [3] = "AH2"
+                        }
+
+                        LP.Character.Gun.KnifeLocal.CreateBeam.RemoteFunction:InvokeServer(unpack(args))
+                    end
+                until findSheriff() ~= LP or not autoShootingEnabled
+            end
+        end
+    end)
+end
+
+Tab:AddToggle({
+    Name = "Murder ESP",
+    Default = false,
+    Callback = function(Value)
+        murderESPEnabled = Value
+        updateESP()
+    end
+})
+
+Tab:AddToggle({
+    Name = "Sheriff ESP",
+    Default = false,
+    Callback = function(Value)
+        sheriffESPEnabled = Value
+        updateESP()
+    end
+})
+
+Tab:AddToggle({
+    Name = "Player ESP",
+    Default = false,
+    Callback = function(Value)
+        playerESPEnabled = Value
+        updateESP()
+    end
+})
+
+TabToggles:AddToggle({
+    Name = "Auto Shoot",
+    Default = false,
+    Callback = function(Value)
+        autoShootingEnabled = Value
+        updateAutoShoot()
+    end
+})
+
+runService.Heartbeat:Connect(function()
+    if tick() - lastUpdate >= updateInterval then
+        updateESP()
+        lastUpdate = tick()
+    end
 end)
 
-GUI:AddToggle('Auto Shooting', false, function(val)
-	autoShooting = val
-end)
-
-GUI:AddToggle('Teleport to Gun Drop', false, function(val)
-	teleportToGunDrop = val
-end)
-
-task.spawn(function()
-	while true do
-		foundMurderer = findMurderer()
-		foundSheriff = findSheriff()
-		task.wait(1)
-	end
-end)
-
-RunService.RenderStepped:Connect(function()
-	if toggleActive then
-		roles = ReplicatedStorage:FindFirstChild("GetPlayerData", true):InvokeServer()
-		for i, v in pairs(roles) do
-			if v.Role == "Murderer" then
-				Murder = i
-			elseif v.Role == 'Sheriff' then
-				Sheriff = i
-			elseif v.Role == 'Hero' then
-				Hero = i
-			end
-		end
-		CreateHighlight()
-		UpdateHighlights()
-	end
-
-	if autoShooting then
-		if foundSheriff == LP then
-			if not foundMurderer then
-				Notification:Notify("info", "Error", "No murderer.")
-				return
-			end
-
-			local murdererPosition = foundMurderer.Character.HumanoidRootPart.Position
-			local characterRootPart = LP.Character.HumanoidRootPart
-			local rayDirection = murdererPosition - characterRootPart.Position
-
-			local raycastParams = RaycastParams.new()
-			raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-			raycastParams.FilterDescendantsInstances = {LP.Character}
-
-			local hit = workspace:Raycast(characterRootPart.Position, rayDirection, raycastParams)
-			if not hit or hit.Instance.Parent == foundMurderer.Character then
-				if not LP.Character:FindFirstChild("Gun") then
-					local hum = LP.Character:FindFirstChild("Humanoid")
-					if LP.Backpack:FindFirstChild("Gun") then
-						hum:EquipTool(LP.Backpack:FindFirstChild("Gun"))
-					else
-						Notification:Notify("info", "Error", "You don't have the gun..?")
-						return
-					end
-				end
-
-				local predictedPosition = getPredictedPosition(foundMurderer, shootOffset)
-
-				local args = {
-					[1] = 1,
-					[2] = predictedPosition,
-					[3] = "AH2"
-				}
-
-				LP.Character.Gun.KnifeLocal.CreateBeam.RemoteFunction:InvokeServer(unpack(args))
-			end
-		end
-	end
-
-	if teleportToGunDrop then
-		local gunDrop = workspace.Normal:FindFirstChild("GunDrop")
-		if gunDrop then
-			local previousPosition = LP.Character:GetPivot()
-			LP.Character:MoveTo(gunDrop.Position)
-			LP.Backpack.ChildAdded:Wait()
-			LP.Character:PivotTo(previousPosition)
-		end
-	end
+ReplicatedStorage.Remotes.Gameplay.RoundStart.OnClientEvent:Connect(function()
+    notify("New Round", "Variables reset for new round", 3)
+    updateAutoShoot()
 end)
