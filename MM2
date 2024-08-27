@@ -19,10 +19,17 @@ local Tab = Window:MakeTab({
     PremiumOnly = false
 })
 
+local TabAutoShoot = Window:MakeTab({
+    Name = "Auto Shoot",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
 local murderESPEnabled = false
 local sheriffESPEnabled = false
 local playerESPEnabled = false
-local autoShootingEnabled = false
+local autoShootEnabled = false
+local shootOffset = 2.8
 
 local runService = game:GetService("RunService")
 local lastUpdate = tick()
@@ -31,7 +38,6 @@ local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
 local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local shootOffset = 2.8
 
 local murderHighlights = {}
 local sheriffHighlights = {}
@@ -57,6 +63,11 @@ local function removeHighlights(highlightTable)
 end
 
 local function updateMurderESP()
+    if not murderESPEnabled then
+        removeHighlights(murderHighlights)
+        return
+    end
+
     local existingMurderHighlights = {}
     for _, model in pairs(Workspace:GetChildren()) do
         if model:IsA("Model") then
@@ -83,6 +94,11 @@ local function updateMurderESP()
 end
 
 local function updateSheriffESP()
+    if not sheriffESPEnabled then
+        removeHighlights(sheriffHighlights)
+        return
+    end
+
     local existingSheriffHighlights = {}
     for _, model in pairs(Workspace:GetChildren()) do
         if model:IsA("Model") then
@@ -109,6 +125,11 @@ local function updateSheriffESP()
 end
 
 local function updatePlayerESP()
+    if not playerESPEnabled then
+        removeHighlights(playerHighlights)
+        return
+    end
+
     local existingPlayerHighlights = {}
     for _, model in pairs(Workspace:GetChildren()) do
         if model:IsA("Model") then
@@ -137,31 +158,64 @@ local function notify(title, text, time)
     })
 end
 
-local function findMurderer()
-    for _, player in pairs(Players:GetPlayers()) do
-        local character = player.Character
-        if character and character:FindFirstChild("Humanoid") then
-            local backpack = player.Backpack
-            if backpack and backpack:FindFirstChild("Knife") then
-                return player
-            end
-        end
-    end
-    return nil
-end
-
-local function findSheriff()
-    for _, player in pairs(Players:GetPlayers()) do
-        local character = player.Character
-        if character and character:FindFirstChild("Humanoid") then
-            local backpack = player.Backpack
-            if backpack and backpack:FindFirstChild("Gun") then
-                return player
-            end
-        end
-    end
-    return nil
-end
+	local function findMurderer()
+	
+	
+		-- Fallback
+		for _, i in ipairs(game.Players:GetPlayers()) do
+			if i.Backpack:FindFirstChild("Knife") then
+				return i
+			end
+		end
+	
+		for _, i in ipairs(game.Players:GetPlayers()) do
+			if not i.Character then continue end
+			if i.Character:FindFirstChild("Knife") then
+				return i
+			end
+		end
+	
+		if playerData then
+			for player, data in playerData do
+				if data.Role == "Murderer" then
+					if game.Players:FindFirstChild(player) then
+						return game.Players:FindFirstChild(player)
+					end
+				end
+			end
+		end
+		return nil
+	end
+	
+	local function findSheriff()
+	
+	
+		-- Fallback
+		for _, i in ipairs(game.Players:GetPlayers()) do
+			if i.Backpack:FindFirstChild("Gun") then
+				return i
+			end
+		end
+	
+		for _, i in ipairs(game.Players:GetPlayers()) do
+			if not i.Character then continue end
+			if i.Character:FindFirstChild("Gun") then
+				return i
+			end
+		end
+	
+	
+		if playerData then
+			for player, data in playerData do
+				if data.Role == "Sheriff" then
+					if game.Players:FindFirstChild(player) then
+						return game.Players:FindFirstChild(player)
+					end
+				end
+			end
+		end
+		return nil
+	end
 
 local function getPredictedPosition(player, shootOffset)
     pcall(function()
@@ -182,54 +236,49 @@ local function getPredictedPosition(player, shootOffset)
     return predictedPosition
 end
 
-local function startAutoShoot()
-    task.spawn(function()
-        while task.wait(1) do
-            if findSheriff() == LP and autoShootingEnabled then
-                notify("Auto-shooting started.")
-                repeat
-                    task.wait(0.1)
-                    local murderer = findMurderer()
-                    if not murderer then notify("No murderer.") continue end
-                    local murdererPosition = murderer.Character.HumanoidRootPart.Position
-                    local characterRootPart = LP.Character.HumanoidRootPart
-                    local rayDirection = murdererPosition - characterRootPart.Position
+local function performAutoShoot()
+    if not autoShootEnabled then
+        return
+    end
 
-                    local raycastParams = RaycastParams.new()
-                    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-                    raycastParams.FilterDescendantsInstances = {LP.Character}
+    local foundSheriff = findSheriff()
+    local foundMurderer = findMurderer()
 
-                    local hit = Workspace:Raycast(characterRootPart.Position, rayDirection, raycastParams)
-                    if not hit or hit.Instance.Parent == murderer.Character then
-                        notify("Auto-shooting!")
-                        if not LP.Character:FindFirstChild("Gun") then
-                            if LP.Backpack:FindFirstChild("Gun") then
-                                LP.Character:FindFirstChild("Humanoid"):EquipTool(LP.Backpack:FindFirstChild("Gun"))
-                            else
-                                notify("You don't have the gun..?")
-                                return
-                            end
-                        end
-
-                        local predictedPosition = getPredictedPosition(murderer, shootOffset)
-
-                        local args = {
-                            [1] = 1,
-                            [2] = predictedPosition,
-                            [3] = "AH2"
-                        }
-
-                        LP.Character.Gun.KnifeLocal.CreateBeam.RemoteFunction:InvokeServer(unpack(args))
-                    end
-                until findSheriff() ~= LP or not autoShootingEnabled
-            end
+    if foundSheriff == LP then
+        if not foundMurderer then
+            return
         end
-    end)
-end
 
-local function updateAutoShoot()
-    if autoShootingEnabled then
-        startAutoShoot()
+        local murdererPosition = foundMurderer.Character.HumanoidRootPart.Position
+        local characterRootPart = LP.Character.HumanoidRootPart
+        local rayDirection = murdererPosition - characterRootPart.Position
+
+        local raycastParams = RaycastParams.new()
+        raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+        raycastParams.FilterDescendantsInstances = {LP.Character}
+
+        local hit = workspace:Raycast(characterRootPart.Position, rayDirection, raycastParams)
+        if not hit or hit.Instance.Parent == foundMurderer.Character then
+            if not LP.Character:FindFirstChild("Gun") then
+                local gun = LP.Backpack:FindFirstChild("Gun")
+                if gun then
+                    LP.Character:FindFirstChild("Humanoid"):EquipTool(gun)
+                else
+                    notify("You don't have the gun.")
+                    return
+                end
+            end
+
+            local predictedPosition = getPredictedPosition(foundMurderer, shootOffset)
+
+            local args = {
+                [1] = 1,
+                [2] = predictedPosition,
+                [3] = "AH2"
+            }
+
+            LP.Character.Gun.KnifeLocal.CreateBeam.RemoteFunction:InvokeServer(unpack(args))
+        end
     end
 end
 
@@ -238,7 +287,6 @@ Tab:AddToggle({
     Default = false,
     Callback = function(Value)
         murderESPEnabled = Value
-        updateESP()
     end
 })
 
@@ -247,7 +295,6 @@ Tab:AddToggle({
     Default = false,
     Callback = function(Value)
         sheriffESPEnabled = Value
-        updateESP()
     end
 })
 
@@ -256,27 +303,35 @@ Tab:AddToggle({
     Default = false,
     Callback = function(Value)
         playerESPEnabled = Value
-        updateESP()
     end
 })
 
-TabToggles:AddToggle({
+TabAutoShoot:AddToggle({
     Name = "Auto Shoot",
     Default = false,
     Callback = function(Value)
-        autoShootingEnabled = Value
-        updateAutoShoot()
+        autoShootEnabled = Value
     end
 })
 
 runService.Heartbeat:Connect(function()
     if tick() - lastUpdate >= updateInterval then
-        updateESP()
+        if murderESPEnabled then updateMurderESP() end
+        if sheriffESPEnabled then updateSheriffESP() end
+        if playerESPEnabled then updatePlayerESP() end
+        if autoShootEnabled then findMurderer() findSheriff() end
         lastUpdate = tick()
+    end
+
+    if autoShootEnabled then
+        performAutoShoot()
     end
 end)
 
 ReplicatedStorage.Remotes.Gameplay.RoundStart.OnClientEvent:Connect(function()
     notify("New Round", "Variables reset for new round", 3)
-    updateAutoShoot()
+    if autoShootEnabled then
+        performAutoShoot()
+        wait(2)
+    end
 end)
