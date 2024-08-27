@@ -163,20 +163,6 @@ local function findSheriff()
     return nil
 end
 
-local function updateESP()
-    if murderESPEnabled then
-        updateMurderESP()
-    end
-    
-    if sheriffESPEnabled then
-        updateSheriffESP()
-    end
-
-    if playerESPEnabled then
-        updatePlayerESP()
-    end
-end
-
 local function getPredictedPosition(player, shootOffset)
     pcall(function()
         player = player.Character
@@ -194,12 +180,6 @@ local function getPredictedPosition(player, shootOffset)
     local predictedPosition = playerHRP.Position + (velocity * Vector3.new(0, 0.5, 0)) * (shootOffset / 15) + playerMoveDirection * shootOffset
 
     return predictedPosition
-end
-
-local function updateAutoShoot()
-    if autoShootingEnabled then
-        startAutoShoot()
-    end
 end
 
 local function startAutoShoot()
@@ -247,6 +227,12 @@ local function startAutoShoot()
     end)
 end
 
+local function updateAutoShoot()
+    if autoShootingEnabled then
+        startAutoShoot()
+    end
+end
+
 Tab:AddToggle({
     Name = "Murder ESP",
     Default = false,
@@ -286,8 +272,6 @@ TabToggles:AddToggle({
 runService.Heartbeat:Connect(function()
     if tick() - lastUpdate >= updateInterval then
         updateESP()
-        findMurderer()
-        findSheriff()
         lastUpdate = tick()
     end
 end)
