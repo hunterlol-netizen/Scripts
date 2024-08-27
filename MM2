@@ -1,3 +1,8 @@
+--[[
+    pelo amor de Deus não se baseie nesse codigo
+    riq peidou em você kkkkkkkkkkkkkkkkkkkkkkk
+]]
+
 local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
 
 local Window = OrionLib:MakeWindow({ 
@@ -209,12 +214,12 @@ end
 local function getPredictedPosition(player, shootOffset)
     pcall(function()
         player = player.Character
-        if not player then notify("No murderer to predict position.") return end
+        if not player then notify("Riq Hub" ,"Não existe murder para prever os movimentos dele.", 2) return end
     end)
     local playerHRP = player:FindFirstChild("UpperTorso")
     local playerHum = player:FindFirstChild("Humanoid")
     if not playerHRP or not playerHum then
-        return Vector3.new(0,0,0), "Could not find the player's HumanoidRootPart."
+        return Vector3.new(0,0,0), "Não consegui encontrar HumanoidRootPart do jogador."
     end
 
     local playerPosition = playerHRP.Position
@@ -253,7 +258,7 @@ local function performAutoShoot()
                 if gun then
                     LP.Character:FindFirstChild("Humanoid"):EquipTool(gun)
                 else
-                    notify("You don't have the gun.")
+                    notify("Riq Hub" ,"Você não tem a Gun...?", 2)
                     return
                 end
             end
@@ -328,9 +333,17 @@ runService.Heartbeat:Connect(function()
 end)
 
 ReplicatedStorage.Remotes.Gameplay.RoundStart.OnClientEvent:Connect(function()
-    notify("New Round", "Variables reset for new round", 3)
+    notify("Riq Hub", "Aualizando ESP...", 3)
+    if murderESPEnabled then updateMurderESP() end
+    if sheriffESPEnabled then updateSheriffESP() end
+    if playerESPEnabled then updatePlayerESP() end
     if autoShootEnabled then
         performAutoShoot()
         wait(2)
+        notify("Riq Hub", "Atualizando o Auto Shoot.", 2)
     end
 end)
+wait(2)
+notify("Riq Hub", "Carregado com Sucesso!", 2)
+wait(2)
+notify("Riq Hub", "Ultimo Update em 27/08/24 as 10:50.")
