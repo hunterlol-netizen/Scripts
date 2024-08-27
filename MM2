@@ -7,20 +7,14 @@ local Window = OrionLib:MakeWindow({
     ConfigFolder = "RiqHubConfig" 
 })
 
-local TabToggles = Window:MakeTab({
-    Name = "Toggles",
+local TabAutoShoot = Window:MakeTab({
+    Name = "Auto Shoot",
     Icon = "rbxassetid://4483345998",
     PremiumOnly = false
 })
 
 local Tab = Window:MakeTab({
     Name = "ESP",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
-
-local TabAutoShoot = Window:MakeTab({
-    Name = "Auto Shoot",
     Icon = "rbxassetid://4483345998",
     PremiumOnly = false
 })
@@ -158,64 +152,59 @@ local function notify(title, text, time)
     })
 end
 
-	local function findMurderer()
-	
-	
-		-- Fallback
-		for _, i in ipairs(game.Players:GetPlayers()) do
-			if i.Backpack:FindFirstChild("Knife") then
-				return i
-			end
-		end
-	
-		for _, i in ipairs(game.Players:GetPlayers()) do
-			if not i.Character then continue end
-			if i.Character:FindFirstChild("Knife") then
-				return i
-			end
-		end
-	
-		if playerData then
-			for player, data in playerData do
-				if data.Role == "Murderer" then
-					if game.Players:FindFirstChild(player) then
-						return game.Players:FindFirstChild(player)
-					end
-				end
-			end
-		end
-		return nil
-	end
-	
-	local function findSheriff()
-	
-	
-		-- Fallback
-		for _, i in ipairs(game.Players:GetPlayers()) do
-			if i.Backpack:FindFirstChild("Gun") then
-				return i
-			end
-		end
-	
-		for _, i in ipairs(game.Players:GetPlayers()) do
-			if not i.Character then continue end
-			if i.Character:FindFirstChild("Gun") then
-				return i
-			end
-		end
-	
-	
-		if playerData then
-			for player, data in playerData do
-				if data.Role == "Sheriff" then
-					if game.Players:FindFirstChild(player) then
-						return game.Players:FindFirstChild(player)
-					end
-				end
-			end
-		end
-		return nil
-	end
+local function findMurderer()
+    -- Fallback
+    for _, i in ipairs(game.Players:GetPlayers()) do
+        if i.Backpack:FindFirstChild("Knife") then
+            return i
+        end
+    end
+
+    for _, i in ipairs(game.Players:GetPlayers()) do
+        if not i.Character then continue end
+        if i.Character:FindFirstChild("Knife") then
+            return i
+        end
+    end
+
+    if playerData then
+        for player, data in playerData do
+            if data.Role == "Murderer" then
+                if game.Players:FindFirstChild(player) then
+                    return game.Players:FindFirstChild(player)
+                end
+            end
+        end
+    end
+    return nil
+end
+
+local function findSheriff()
+    -- Fallback
+    for _, i in ipairs(game.Players:GetPlayers()) do
+        if i.Backpack:FindFirstChild("Gun") then
+            return i
+        end
+    end
+
+    for _, i in ipairs(game.Players:GetPlayers()) do
+        if not i.Character then continue end
+        if i.Character:FindFirstChild("Gun") then
+            return i
+        end
+    end
+
+    if playerData then
+        for player, data in playerData do
+            if data.Role == "Sheriff" then
+                if game.Players:FindFirstChild(player) then
+                    return game.Players:FindFirstChild(player)
+                end
+            end
+        end
+    end
+    return nil
+end
 
 local function getPredictedPosition(player, shootOffset)
     pcall(function()
@@ -282,6 +271,13 @@ local function performAutoShoot()
     end
 end
 
+local function onBackpackChanged()
+    local gun = LP.Backpack:FindFirstChild("Gun")
+    if gun then
+        performAutoShoot()
+    end
+end
+
 Tab:AddToggle({
     Name = "Murder ESP",
     Default = false,
@@ -313,6 +309,9 @@ TabAutoShoot:AddToggle({
         autoShootEnabled = Value
     end
 })
+
+-- Monitor changes in the player's backpack
+LP.Backpack.ChildAdded:Connect(onBackpackChanged)
 
 runService.Heartbeat:Connect(function()
     if tick() - lastUpdate >= updateInterval then
