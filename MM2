@@ -3,26 +3,15 @@
     riq peidou em você kkkkkkkkkkkkkkkkkkkkkkk
 ]]
 
-local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
+local NEVERLOSE = loadstring(game:HttpGet("https://raw.githubusercontent.com/3345-c-a-t-s-u-s/NEVERLOSE-UI-Nightly/main/source.lua"))()
+NEVERLOSE:Theme("dark")
+local Window = NEVERLOSE:AddWindow("Riq Hub - " .. identifyexecutor() ,"Murder Mystery 2")
+local Notification = NEVERLOSE:Notification()
 
-local Window = OrionLib:MakeWindow({ 
-    Name = "Riq Hub - " .. identifyexecutor(), 
-    HidePremium = false, 
-    SaveConfig = true, 
-    ConfigFolder = "RiqHubConfig" 
-})
-
-local TabAutoShoot = Window:MakeTab({
-    Name = "Auto Shoot",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
-
-local Tab = Window:MakeTab({
-    Name = "ESP",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
+local TabAutoShoot1 = Window:AddTab('Auto Shoot','earth')
+local Tab1 = Window:AddTab('ESP','earth')
+local TabAutoShoot = TabAutoShoot1:AddSection('Auto Shoot',"left")
+local Tab = Tab1:AddSection('ESP',"left")
 
 local murderESPEnabled = false
 local sheriffESPEnabled = false
@@ -148,13 +137,8 @@ local function updatePlayerESP()
     end
 end
 
-local function notify(title, text, time)
-    OrionLib:MakeNotification({
-        Name = title,
-        Content = text,
-        Image = "rbxassetid://4483345998",
-        Time = time
-    })
+local function notify(title, type, text, time)
+    Notification:Notify(type,title,text,time)
 end
 
 local function findMurderer()
@@ -214,7 +198,7 @@ end
 local function getPredictedPosition(player, shootOffset)
     pcall(function()
         player = player.Character
-        if not player then notify("Riq Hub" ,"Não existe murder para prever os movimentos dele.", 2) return end
+        if not player then notify("Riq Hub","warning","Não existe murder para prever os movimentos dele.", 2) return end
     end)
     local playerHRP = player:FindFirstChild("UpperTorso")
     local playerHum = player:FindFirstChild("Humanoid")
@@ -258,7 +242,7 @@ local function performAutoShoot()
                 if gun then
                     LP.Character:FindFirstChild("Humanoid"):EquipTool(gun)
                 else
-                    notify("Riq Hub" ,"Você não tem a Gun...?", 2)
+                    notify("Riq Hub" ,"warning" ,"Você não tem a Gun...?", 2)
                     return
                 end
             end
@@ -283,37 +267,21 @@ local function onBackpackChanged()
     end
 end
 
-Tab:AddToggle({
-    Name = "Murder ESP",
-    Default = false,
-    Callback = function(Value)
-        murderESPEnabled = Value
-    end
-})
+Tab:AddToggle('Murder ESP',false,function(val)
+    murderESPEnabled = val
+end)
 
-Tab:AddToggle({
-    Name = "Sheriff ESP",
-    Default = false,
-    Callback = function(Value)
-        sheriffESPEnabled = Value
-    end
-})
+Tab:AddToggle('Sheriff ESP',false,function(val)
+    sheriffESPEnabled = val
+end)
 
-Tab:AddToggle({
-    Name = "Player ESP",
-    Default = false,
-    Callback = function(Value)
-        playerESPEnabled = Value
-    end
-})
+Tab:AddToggle('Players ESP',false,function(val)
+    playerESPEnabled = val
+end)
 
-TabAutoShoot:AddToggle({
-    Name = "Auto Shoot",
-    Default = false,
-    Callback = function(Value)
-        autoShootEnabled = Value
-    end
-})
+TabAutoShoot:AddToggle('Auto Shoot',false,function(val)
+    autoShootEnabled = val
+end)
 
 -- Monitor changes in the player's backpack
 LP.Backpack.ChildAdded:Connect(onBackpackChanged)
@@ -333,17 +301,17 @@ runService.Heartbeat:Connect(function()
 end)
 
 ReplicatedStorage.Remotes.Gameplay.RoundStart.OnClientEvent:Connect(function()
-    notify("Riq Hub", "Aualizando ESP...", 3)
+    notify("Riq Hub","info","Aualizando ESP...",3)
     if murderESPEnabled then updateMurderESP() end
     if sheriffESPEnabled then updateSheriffESP() end
     if playerESPEnabled then updatePlayerESP() end
     if autoShootEnabled then
         performAutoShoot()
         wait(2)
-        notify("Riq Hub", "Atualizando o Auto Shoot.", 2)
+        notify("Riq Hub","info","Atualizando o Auto Shoot.",2)
     end
 end)
 wait(2)
-notify("Riq Hub", "Carregado com Sucesso!", 2)
+notify("Riq Hub","info","Carregado com Sucesso!",2)
 wait(2)
-notify("Riq Hub", "Ultimo Update em 27/08/24 as 10:50.")
+notify("Riq Hub","info","Ultimo Update em 27/08/24 as 10:50.",2)
