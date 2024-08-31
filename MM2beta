@@ -308,7 +308,7 @@ end)
 
 TabAutoShoot:AddToggle('Auto Grab Gun', false, function(val)
     autoGetDroppedGun = val
-    if autoGetDroppedGun then
+    while autoGetDroppedGun do
         getDroppedGun()
     end
 end)
@@ -325,10 +325,6 @@ runService.Heartbeat:Connect(function()
 
     if autoShootEnabled then
         performAutoShoot()
-    end
-
-    if autoGetDroppedGun then
-        getDroppedGun()
     end
 end)
 
