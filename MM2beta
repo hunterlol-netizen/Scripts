@@ -204,7 +204,6 @@ local function getDroppedGun()
         
         local gunDrop = workspace.Normal:FindFirstChild("GunDrop")
         if not gunDrop then
-            notify("Riq Hub", "No dropped gun to be teleported to.", 2)
             return
         end
         
