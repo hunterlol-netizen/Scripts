@@ -2,13 +2,11 @@ local NEVERLOSE = loadstring(game:HttpGet("https://raw.githubusercontent.com/334
 
 NEVERLOSE:Theme("dark")
 
--- Criação da janela principal
 local Window = NEVERLOSE:AddWindow("Riq Hub - " .. identifyexecutor(), "Murder Mystery 2")
 local Notification = NEVERLOSE:Notification()
 
 Notification.MaxNotifications = 6
 
--- Configuração dos tabs
 local TabAutoShoot1 = Window:AddTab("Auto Shoot", "earth")
 local TabESP1 = Window:AddTab("ESP", "earth")
 local TabAutoShoot = TabAutoShoot1:AddSection('Auto Shoot',"left")
@@ -143,7 +141,6 @@ local function notify(title, text, time)
 end
 
 local function findMurderer()
-    -- Fallback
     for _, i in ipairs(game.Players:GetPlayers()) do
         if i.Backpack:FindFirstChild("Knife") then
             return i
@@ -170,7 +167,6 @@ local function findMurderer()
 end
 
 local function findSheriff()
-    -- Fallback
     for _, i in ipairs(game.Players:GetPlayers()) do
         if i.Backpack:FindFirstChild("Gun") then
             return i
@@ -268,7 +264,6 @@ local function onBackpackChanged()
     end
 end
 
--- Adiciona toggles aos tabs
 TabESP:AddToggle('Murder ESP', false, function(val)
     murderESPEnabled = val
 end)
@@ -285,7 +280,6 @@ TabAutoShoot:AddToggle('Auto Shoot', false, function(val)
     autoShootEnabled = val
 end)
 
--- Monitor changes in the player's backpack
 LP.Backpack.ChildAdded:Connect(onBackpackChanged)
 
 runService.Heartbeat:Connect(function()
